@@ -30,7 +30,7 @@ DataRoot/
 ```
 
 ## Mongo import notebook
-Open `dataset_notebook.ipynb` and run cells in order. The notebook:
+Open `aiot_dataset_creation.ipynb` and run cells in order. The notebook:
 - parses metadata from filenames
 - loads CSVs from `mongo_data/`
 - writes into MongoDB collection
