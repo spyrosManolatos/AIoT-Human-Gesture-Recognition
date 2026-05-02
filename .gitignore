@@ -1,0 +1,5 @@
+.venv/
+data/
+mongo_data/
+config.yml
+*.ipynb_checkpoints
