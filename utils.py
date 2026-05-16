@@ -41,10 +41,11 @@ def sliding_window_pd(
     # to the size of the window.
     for window in df.rolling(window=ws, step=overlap, min_periods=ws,
                              win_type=w_type, center=w_center):
-        if window[window.columns[0]].count() >= ws:
+        sensor_columns = ["acc_x", "acc_y", "acc_z", "gyr_x", "gyr_y", "gyr_z"]
+        if window[sensor_columns].count().min() >= ws:
             if print_stats:
                 print("Print Window:", counter)
-                print("Number of samples:", window[window.columns[0]].count())
+                print("Number of samples:", window[sensor_columns].count().min())
             windows_list.append(window)
         counter += 1
     if print_stats:
@@ -99,11 +100,7 @@ def filter_instances(
     filtered_instances_list = list()
     for item in instances_list:
         filtered_instance = item.copy()
-        numeric_columns = [
-            column_name
-            for column_name in filtered_instance.columns
-            if column_name.startswith("acc_") or column_name.startswith("gyr_")
-        ]
+        numeric_columns = ["acc_x", "acc_y", "acc_z", "gyr_x", "gyr_y", "gyr_z"]
         filtered_instance[numeric_columns] = filtered_instance[numeric_columns].apply(
             apply_filter,
             args=(order, wn, filter_type)
