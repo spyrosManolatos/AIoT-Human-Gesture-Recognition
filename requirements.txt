@@ -11,3 +11,4 @@ pyyaml==6.0.1
 ipywidgets==8.1.2
 psynlig==0.2.2.dev0
 pydot==2.0.0
+tqdm>=4.66.0

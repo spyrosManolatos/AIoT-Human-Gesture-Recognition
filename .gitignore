@@ -3,3 +3,4 @@ data/
 mongo_data/
 config.yml
 *.ipynb_checkpoints
+__pycache__
