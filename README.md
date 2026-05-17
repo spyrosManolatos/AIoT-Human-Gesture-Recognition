@@ -38,13 +38,13 @@ Open `aiot_dataset_creation.ipynb` and run cells in order. The notebook:
 ## Pipeline overview
 The full gesture-recognition workflow is implemented in the project notebooks and helper modules:
 
-- [aiot_project_feature_engineering.ipynb](/home/spman/ceid/Iot_TimeSeries/aiot_project_feature_engineering.ipynb): main pipeline and subject-independent evaluation
-- [aiot_project_feature_engineering_stratified_test_split.ipynb](/home/spman/ceid/Iot_TimeSeries/aiot_project_feature_engineering_stratified_test_split.ipynb): comparison experiment using a stratified random split
-- [time_series_random_split.ipynb](/home/spman/ceid/Iot_TimeSeries/time_series_random_split.ipynb): direct time-series classification with a lightweight 1D CNN fed by windowed 3D tensors
-- [time_series_split_by_subject.ipynb](/home/spman/ceid/Iot_TimeSeries/time_series_split_by_subject.ipynb): direct time-series classification with a subject-wise split
-- [utils.py](/home/spman/ceid/Iot_TimeSeries/utils.py): filtering, windowing, and dataframe helpers
-- [utils_features.py](/home/spman/ceid/Iot_TimeSeries/utils_features.py): feature extraction
-- [utils_visual.py](/home/spman/ceid/Iot_TimeSeries/utils_visual.py): reusable plots for signal inspection and model analysis
+- [aiot_project_feature_engineering.ipynb](aiot_project_feature_engineering.ipynb): main pipeline and subject-independent evaluation
+- [aiot_project_feature_engineering_stratified_test_split.ipynb](aiot_project_feature_engineering_stratified_test_split.ipynb): comparison experiment using a stratified random split
+- [time_series_random_split.ipynb](time_series_random_split.ipynb): direct time-series classification with a lightweight 1D CNN fed by windowed 3D tensors
+- [time_series_split_by_subject.ipynb](time_series_split_by_subject.ipynb): direct time-series classification with a subject-wise split
+- [utils.py](utils.py): filtering, windowing, and dataframe helpers
+- [utils_features.py](utils_features.py): feature extraction
+- [utils_visual.py](utils_visual.py): reusable plots for signal inspection and model analysis
 
 ### End-to-end flow
 1. Load raw accelerometer and gyroscope samples from MongoDB.
