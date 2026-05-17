@@ -40,80 +40,68 @@ The full gesture-recognition workflow is implemented in the project notebooks an
 
 - [aiot_project_feature_engineering.ipynb](/home/spman/ceid/Iot_TimeSeries/aiot_project_feature_engineering.ipynb): main pipeline and subject-independent evaluation
 - [aiot_project_feature_engineering_stratified_test_split.ipynb](/home/spman/ceid/Iot_TimeSeries/aiot_project_feature_engineering_stratified_test_split.ipynb): comparison experiment using a stratified random split
+- [time_series_random_split.ipynb](/home/spman/ceid/Iot_TimeSeries/time_series_random_split.ipynb): direct time-series classification with a lightweight 1D CNN fed by windowed 3D tensors
+- [time_series_split_by_subject.ipynb](/home/spman/ceid/Iot_TimeSeries/time_series_split_by_subject.ipynb): direct time-series classification with a subject-wise split
 - [utils.py](/home/spman/ceid/Iot_TimeSeries/utils.py): filtering, windowing, and dataframe helpers
 - [utils_features.py](/home/spman/ceid/Iot_TimeSeries/utils_features.py): feature extraction
 - [utils_visual.py](/home/spman/ceid/Iot_TimeSeries/utils_visual.py): reusable plots for signal inspection and model analysis
 
 ### End-to-end flow
 1. Load raw accelerometer and gyroscope samples from MongoDB.
-2. Reformat the recordings into a consistent dataframe with sensor axes and metadata such as `gesture_id` and `user`.
-3. Perform exploratory data analysis on the raw recordings:
-   - duration per gesture and user
-   - signal inspection
-   - class and user balance checks
-4. Apply a low-pass Butterworth filter for each user session to reduce high-frequency sensor noise.
-5. Segment each filtered recording into fixed windows using a sliding-window procedure.
-6. Re-check class balance after segmentation by counting the number of windows per gesture and user.
-7. Split data for training and evaluation.
-8. Extract handcrafted time-domain, spectral, and cross-channel features from each window with `extract_all_candidates(...)`.
-9. Rank and prune features with univariate selection and correlation analysis.
-10. Visualize the feature space with PCA.
-11. Train and evaluate classifiers, mainly SVM and Random Forest.
+2. Reformat recordings into a consistent dataframe with sensor axes and metadata such as `gesture_id` and `user`.
+3. Inspect class balance and raw signal behavior.
+4. Apply a low-pass Butterworth filter to reduce sensor noise.
+5. Segment each recording into fixed windows with a sliding-window procedure.
+6. Split windows for training and evaluation.
+7. Branch into two modeling paths:
+   - feature engineering: flatten each window, extract handcrafted descriptors with `extract_all_candidates(...)`, then train classical models such as SVM and Random Forest
+   - time series classification: feed the raw windowed signals directly to a lightweight 1D CNN as 3D tensors shaped like `(num_windows, window_size, 6)`
+8. Evaluate each path and compare random-split performance with subject-wise generalization.
+
+### Four stories
+The project has two modeling paths, and each path has a random-split story plus a subject-wise story.
+
+| Path | Split story | Notebook | Takeaway |
+| --- | --- | --- | --- |
+| Feature engineering | Subject-independent | [aiot_project_feature_engineering.ipynb](/home/spman/ceid/Iot_TimeSeries/aiot_project_feature_engineering.ipynb) | Handcrafted features do not generalize well to a completely unseen user. |
+| Feature engineering | Stratified random split | [aiot_project_feature_engineering_stratified_test_split.ipynb](/home/spman/ceid/Iot_TimeSeries/aiot_project_feature_engineering_stratified_test_split.ipynb) | Accuracy looks much stronger when the same users appear in train and test. |
+| Direct time series CNN | Random window split | [time_series_random_split.ipynb](/home/spman/ceid/Iot_TimeSeries/time_series_random_split.ipynb) | A lightweight 1D CNN performs well when windows from the same subject can leak into both sets. |
+| Direct time series CNN | Subject-wise split | [time_series_split_by_subject.ipynb](/home/spman/ceid/Iot_TimeSeries/time_series_split_by_subject.ipynb) | The same CNN drops sharply on unseen subjects, showing the real generalization limit. |
+
+### What the comparison shows
+The random-split results are useful for checking whether the models can learn gesture structure under a mixed-user setting, but they are optimistic.
+
+The subject-wise results are the more honest generalization test, and they show the same pattern in both ML branches:
+
+- feature engineering works better when the user distribution overlaps between train and test
+- the direct 1D CNN also looks strong under random window splitting
+- both approaches degrade sharply when evaluated on a truly unseen subject
 
 ### Feature set
-The active feature extractor is `extract_all_candidates(window)` in [utils_features.py](/home/spman/ceid/Iot_TimeSeries/utils_features.py). It produces a structured feature pool from each segmented window, including:
+The active feature extractor is `extract_all_candidates(window)` in [utils_features.py](/home/spman/ceid/Iot_TimeSeries/utils_features.py). For each fixed window, it turns the raw sensor slice into a single feature vector by computing summary statistics over the accelerometer and gyroscope channels instead of feeding the raw samples directly to the model.
+
+In practice, this means each window is described by:
 
 - per-axis time-domain statistics such as mean, standard deviation, RMS, skewness, kurtosis, zero-crossing rate, and IQR
 - spectral descriptors such as dominant frequency, spectral entropy, mean frequency, and band-energy ratios
 - cross-channel information such as acceleration/gyroscope magnitudes, signal magnitude area, and pairwise axis correlations
 
-## Experiments
-We ran two main experiments to understand both raw model performance and generalization behavior.
+Those handcrafted features are then used as input to classical machine-learning models.
 
-### Experiment 1: subject-independent split
-Notebook: [aiot_project_feature_engineering.ipynb](/home/spman/ceid/Iot_TimeSeries/aiot_project_feature_engineering.ipynb)
+### Models used
+The project compares two model families:
 
-- Training users: `01`, `02`
-- Test user: `03`
-- Goal: evaluate whether handcrafted features generalize to a completely unseen subject
+- classical ML on handcrafted features: SVM and Random Forest in the feature-engineering notebooks
+- direct deep learning on raw windows: a lightweight 1D CNN in the time-series notebooks
 
-Observed outcome:
-
-- SVM accuracy: about `0.15`
-- Random Forest accuracy: about `0.15`
-
-This is below the `0.20` random-guessing baseline for 5 classes, which shows that the initial feature pipeline is not robust enough for unseen-user generalization.
-
-### Experiment 2: stratified random split
-Notebook: [aiot_project_feature_engineering_stratified_test_split.ipynb](/home/spman/ceid/Iot_TimeSeries/aiot_project_feature_engineering_stratified_test_split.ipynb)
-
-- Split: `train_test_split(..., test_size=0.25, stratify=y_all, random_state=42)`
-- Goal: evaluate the same feature space when both train and test sets contain samples from all users
-
-Observed outcome:
-
-- SVC accuracy: about `0.78`
-- Random Forest accuracy: about `0.84`
-- Random Forest with GridSearchCV: about `0.85`
-
-Best tuned Random Forest parameters from the notebook:
-
-- `n_estimators = 200`
-- `max_depth = 20`
-- `min_samples_leaf = 1`
-
-### Interpretation
-The gap between the two experiments is the main result of the project so far:
-
-- performance is strong when the train/test split contains the same users in both sets
-- performance collapses when the model is evaluated on a completely unseen user
-
-This suggests that the current handcrafted features capture user-specific execution patterns well, but still struggle with user-independent generalization.
+The Random Forest experiments are especially useful because they provide a strong non-neural baseline and are easy to interpret across the feature space. The 1D CNN, on the other hand, learns local motion patterns directly from the 3D window tensors shaped as `(num_windows, window_size, 6)`.
 
 ## Repository structure
 - `aiot_dataset_creation.ipynb`: imports local CSV recordings into MongoDB
 - `aiot_project_feature_engineering.ipynb`: main pipeline notebook
 - `aiot_project_feature_engineering_stratified_test_split.ipynb`: experimental split notebook
+- `time_series_random_split.ipynb`: direct 1D CNN time-series classifier
+- `time_series_split_by_subject.ipynb`: direct 1D CNN time-series classifier with subject-wise split
 - `utils.py`: processing helpers
 - `utils_features.py`: feature engineering helpers
 - `utils_visual.py`: plotting helpers
@@ -121,4 +109,3 @@ This suggests that the current handcrafted features capture user-specific execut
 ## Notes
 - Database names are case-sensitive in MongoDB; keep a single casing.
 - Large CSVs may take time to insert; consider batching if needed.
-
