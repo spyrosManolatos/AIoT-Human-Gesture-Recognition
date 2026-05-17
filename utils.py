@@ -168,6 +168,23 @@ def df_rebase(
 
     return df
 
+def encode_labels(instances_list, le=None) -> np.ndarray:
+    """Encodes target labels.
+
+    Args:
+        instances_list: List of instances to be encoded.
+        le: Optional fitted LabelEncoder to reuse. If None, a new encoder is
+            created and fitted to instances_list.
+
+    Returns:
+        A tuple of (encoded_array, label_encoder).
+    """
+    if le is None:
+        le = preprocessing.LabelEncoder()
+        le.fit(instances_list)
+
+    instances_arr = le.transform(instances_list)
+    return instances_arr, le
 
 def rename_df_column_values(
     np_array: np.ndarray, 
@@ -203,22 +220,6 @@ def are_lists_equal(
     list2: list
 ) -> bool:
     return set(list1) == set(list2)
-
-
-def encode_labels(instances_list) -> np.ndarray:
-    """Encodes target labels.
-
-    Args:
-        instances_list: List of instances to be encoded.
-
-    Returns:
-        The encoded array.
-    """
-    le = preprocessing.LabelEncoder()
-    le.fit(instances_list)
-    instances_arr = le.transform(instances_list)
-
-    return instances_arr
 
 
 def list_files_in_folder(folder_path) -> list:
