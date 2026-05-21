@@ -1,111 +1,112 @@
 # AIoT Human Gesture Recognition
 
-Tools, notebooks, and helper modules for building an IMU-based human gesture recognition dataset, inserting it into MongoDB, and training gesture classifiers from accelerometer and gyroscope time series.
+Tools, notebooks, and helper modules for building an IMU-based human gesture recognition dataset, inserting it into MongoDB, and training gesture classifiers from accelerometer and gyroscope time-series data.
+
+---
 
 ## Requirements
-- Python 3.10+
-- MongoDB (local or remote)
 
-## Setup
-1) Create a virtual environment and install deps:
-   - `python -m venv .venv`
-   - `pip install -r requirements.txt`
+- **Python**: 3.10+
+- **MongoDB**: Local or remote instance (e.g., Docker or MongoDB Atlas)
 
-2) Configure the DB connection in `config.yml` (kept local, not committed):
-   - `client`: MongoDB URI
-   - `db`: database name (case-sensitive)
-   - `col`: collection name
+---
 
-## Dataset layout
-Expected directory structure under `data/` (example):
+## Setup & Installation
 
-```
-DataRoot/
-  swipe-down-thumb/
-    userA/
-      file1_..._AccGyr_...csv
-  swipe-left-thumb/
-    userB/
-      file2_..._AccGyr_...csv
+### 1. Environment Setup
+Create a virtual environment and install the required dependencies:
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-## Mongo import notebook
-Open `aiot_dataset_creation.ipynb` and run cells in order. The notebook:
-- parses metadata from filenames
-- loads CSVs from `mongo_data/`
-- writes into MongoDB collection
+### 2. Configure Settings
+Copy the example configuration or edit the existing `config.yml` in the root directory:
+- `client`: The MongoDB Connection URI (e.g., `"mongodb://localhost:27017"`).
+- `db`: The target database name (case-sensitive).
+- `col`: The collection name to store dataset instances.
 
-## Pipeline overview
-The full gesture-recognition workflow is implemented in the project notebooks and helper modules:
+### 3. Git Hygiene (Recommended)
+Since executing Jupyter Notebooks (`.ipynb`) automatically updates cell execution timestamps and metadata, committing them directly can clutter your git history. To automatically strip execution metadata and outputs before committing, install `nbstripout`:
+```bash
+# Install nbstripout
+pip install nbstripout
 
-- [aiot_project_feature_engineering.ipynb](aiot_project_feature_engineering.ipynb): main pipeline and subject-independent evaluation
-- [aiot_project_feature_engineering_stratified_test_split.ipynb](aiot_project_feature_engineering_stratified_test_split.ipynb): comparison experiment using a stratified random split
-- [time_series_random_split.ipynb](time_series_random_split.ipynb): direct time-series classification with a lightweight 1D CNN fed by windowed 3D tensors
-- [time_series_split_by_subject.ipynb](time_series_split_by_subject.ipynb): direct time-series classification with a subject-wise split
-- [utils.py](utils.py): filtering, windowing, and dataframe helpers
-- [utils_features.py](utils_features.py): feature extraction
-- [utils_visual.py](utils_visual.py): reusable plots for signal inspection and model analysis
+# Configure it for this repository
+nbstripout --install
+```
 
-### End-to-end flow
-1. Load raw accelerometer and gyroscope samples from MongoDB.
-2. Reformat recordings into a consistent dataframe with sensor axes and metadata such as `gesture_id` and `user`.
-3. Inspect class balance and raw signal behavior.
-4. Apply a low-pass Butterworth filter to reduce sensor noise.
-5. Segment each recording into fixed windows with a sliding-window procedure.
-6. Split windows for training and evaluation.
-7. Branch into two modeling paths:
-   - feature engineering: flatten each window, extract handcrafted descriptors with `extract_all_candidates(...)`, then train classical models such as SVM and Random Forest
-   - time series classification: feed the raw windowed signals directly to a lightweight 1D CNN as 3D tensors shaped like `(num_windows, window_size, 6)`
-8. Evaluate each path and compare random-split performance with subject-wise generalization.
+---
 
-### Four stories
-The project has two modeling paths, and each path has a random-split story plus a subject-wise story.
+## Dataset Layout
 
-| Path | Split story | Notebook | Takeaway |
-| --- | --- | --- | --- |
-| Feature engineering | Subject-independent | [aiot_project_feature_engineering.ipynb](/home/spman/ceid/Iot_TimeSeries/aiot_project_feature_engineering.ipynb) | Handcrafted features do not generalize well to a completely unseen user. |
-| Feature engineering | Stratified random split | [aiot_project_feature_engineering_stratified_test_split.ipynb](/home/spman/ceid/Iot_TimeSeries/aiot_project_feature_engineering_stratified_test_split.ipynb) | Accuracy looks much stronger when the same users appear in train and test. |
-| Direct time series CNN | Random window split | [time_series_random_split.ipynb](/home/spman/ceid/Iot_TimeSeries/time_series_random_split.ipynb) | A lightweight 1D CNN performs well when windows from the same subject can leak into both sets. |
-| Direct time series CNN | Subject-wise split | [time_series_split_by_subject.ipynb](/home/spman/ceid/Iot_TimeSeries/time_series_split_by_subject.ipynb) | The same CNN drops sharply on unseen subjects, showing the real generalization limit. |
+The dataset creation notebook expects CSV files containing raw signal records grouped by gesture under a `mongo_data/` directory.
 
-### What the comparison shows
-The random-split results are useful for checking whether the models can learn gesture structure under a mixed-user setting, but they are optimistic.
+### Expected Directory Structure
+```text
+mongo_data/
+  ├── swipe-down-thumb/
+  │     ├── swipe-down-thumb_1_100_AccGyr_1_0_userA_e1c9f2b8.csv
+  │     └── swipe-down-thumb_1_100_AccGyr_1_0_userB_f3a7d4a2.csv
+  └── swipe-left-thumb/
+        └── swipe-left-thumb_1_100_AccGyr_1_0_userC_d8e9c1a5.csv
+```
+> [!IMPORTANT]
+> The database import script reads CSV files directly under each gesture directory. Do **not** place them inside extra nested folders (e.g., `mongo_data/swipe-down-thumb/userA/file.csv`), otherwise they will be skipped.
 
-The subject-wise results are the more honest generalization test, and they show the same pattern in both ML branches:
+### Filename Schema
+CSV filenames are parsed into metadata values using the schema:
+`[gesture_id]_[hand]_[sr]_[sensor]_[primary]_[spontaneous]_[user]_[unique_id_hash].csv`
 
-- feature engineering works better when the user distribution overlaps between train and test
-- the direct 1D CNN also looks strong under random window splitting
-- both approaches degrade sharply when evaluated on a truly unseen subject
+---
 
-### Feature set
-The active feature extractor is `extract_all_candidates(window)` in [utils_features.py](/home/spman/ceid/Iot_TimeSeries/utils_features.py). For each fixed window, it turns the raw sensor slice into a single feature vector by computing summary statistics over the accelerometer and gyroscope channels instead of feeding the raw samples directly to the model.
+## Database Import
 
-In practice, this means each window is described by:
+Open [aiot_dataset_creation.ipynb](aiot_dataset_creation.ipynb) and execute the cells. This notebook will:
+1. Read gesture subdirectories in `mongo_data/`.
+2. Parse metadata from the CSV filenames.
+3. Automatically map sensor columns (supporting both standard names and unit-annotated headers).
+4. Perform bulk insertion of raw series documents into MongoDB.
 
-- per-axis time-domain statistics such as mean, standard deviation, RMS, skewness, kurtosis, zero-crossing rate, and IQR
-- spectral descriptors such as dominant frequency, spectral entropy, mean frequency, and band-energy ratios
-- cross-channel information such as acceleration/gyroscope magnitudes, signal magnitude area, and pairwise axis correlations
+---
 
-Those handcrafted features are then used as input to classical machine-learning models.
+## Modeling Pipeline Overview
 
-### Models used
-The project compares two model families:
+* For a comprehensive guide detailing data ingestion, signal filtering, and the 1D CNN architecture, see the [Gesture Recognition Pipeline Documentation](docs/readme_pipeline.md).
+* For a detailed breakdown of the Exploratory Data Analysis (EDA) steps, per-session preprocessing logic, and feature selection (ANOVA and multicollinearity checks), see the [Feature Engineering & EDA Documentation](docs/readme_features.md).
 
-- classical ML on handcrafted features: SVM and Random Forest in the feature-engineering notebooks
-- direct deep learning on raw windows: a lightweight 1D CNN in the time-series notebooks
+The project implements two modeling branches across four distinct experimental setups to study how classifiers generalize to unseen users.
 
-The Random Forest experiments are especially useful because they provide a strong non-neural baseline and are easy to interpret across the feature space. The 1D CNN, on the other hand, learns local motion patterns directly from the 3D window tensors shaped as `(num_windows, window_size, 6)`.
+### The Four Experimental Scenarios
 
-## Repository structure
-- `aiot_dataset_creation.ipynb`: imports local CSV recordings into MongoDB
-- `aiot_project_feature_engineering.ipynb`: main pipeline notebook
-- `aiot_project_feature_engineering_stratified_test_split.ipynb`: experimental split notebook
-- `time_series_random_split.ipynb`: direct 1D CNN time-series classifier
-- `time_series_split_by_subject.ipynb`: direct 1D CNN time-series classifier with subject-wise split
-- `utils.py`: processing helpers
-- `utils_features.py`: feature engineering helpers
-- `utils_visual.py`: plotting helpers
+| Preprocessing & Features | Data Split Type | Notebook | Key Generalization Takeaway |
+| :--- | :--- | :--- | :--- |
+| **Feature Engineering**<br>*(Statistical + Spectral)* | **Subject-Independent**<br>*(Split by user)* | [ml_subject_split.ipynb](ml_subject_split.ipynb) | Handcrafted features do not generalize well to completely unseen users (real-world performance drop). |
+| **Feature Engineering**<br>*(Statistical + Spectral)* | **Stratified Random**<br>*(Windows mixed)* | [ml_stratified_split.ipynb](ml_stratified_split.ipynb) | Accuracy appears overly optimistic when the same users' windows leak into both train and test sets. |
+| **1D CNN on Raw Series** | **Stratified Random**<br>*(Windows mixed)* | [cnn_stratified_split.ipynb](cnn_stratified_split.ipynb) | A lightweight 1D CNN performs very well when data from the same subject overlaps between sets. |
+| **1D CNN on Raw Series** | **Subject-Wise Split** | [cnn_subject_split.ipynb](cnn_subject_split.ipynb) | Deep learning classification accuracy drops significantly on unseen subjects, reflecting true generalization limit. |
 
-## Notes
-- Database names are case-sensitive in MongoDB; keep a single casing.
-- Large CSVs may take time to insert; consider batching if needed.
+---
+
+## Configurable Pipeline Steps (`config.yml`)
+
+The preprocessing and model hyperparameters can be tuned in [config.yml](config.yml):
+
+*   **`sliding_window`**:
+    *   `ws`: Window size in samples (e.g., `150`).
+    *   `overlap`: Overlap size between consecutive windows (e.g., `75`).
+    *   `w_type`: Windowing function to apply (e.g., `"hann"`).
+*   **`filter`**:
+    *   `order`: The order of the Butterworth low-pass filter (e.g., `3`).
+    *   `wn`: Critical normalized frequency cutoff (e.g., `0.17`).
+*   **`classifier` / `fine_tune`**:
+    *   Hyperparameter grid values for cross-validation search (e.g. SVM kernel, `C`, and `gamma` parameters).
+
+---
+
+## Code Modules Reference
+
+*   [utils.py](utils.py): Provides signal filtering (Butterworth), sliding-window segmentation, dataset reshaping, and file helpers.
+*   [utils_features.py](utils_features.py): Extracts statistical (mean, skewness, zero-crossing, etc.) and spectral descriptors from segmented windows.
+*   [utils_visual.py](utils_visual.py): Visualizes raw/filtered signals, class distributions, and confusion matrices.
