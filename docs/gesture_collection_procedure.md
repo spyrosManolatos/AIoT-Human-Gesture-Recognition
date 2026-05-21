@@ -72,20 +72,22 @@ The following diagram illustrates the experimental data collection sequence:
 
 ```mermaid
 sequenceDiagram
-    participant User as Participant
+    participant Subj_A as Subject A (Performing Gestures)
+    participant Subj_B as Subject B (Operating iOS App)
     participant Watch as MetaMotionR Watch
     participant App as MetaMotionR iOS App
     participant Script as merge_sensor_csvs.py
     participant NB as aiot_dataset_creation.ipynb
     participant DB as MongoDB
     
-    User->>Watch: Wear wristband on primary right hand (watch style)
-    User->>App: Initiate logging session
+    Subj_A->>Watch: Wear wristband on primary right hand (watch style)
+    Subj_B->>App: Launch app & connect to Watch
+    Subj_B->>App: Start recording session via App
     loop Spontaneous Movements (5 minutes)
-        User->>Watch: Perform gesture repeatedly at own tempo
-        Watch->>Watch: Log raw IMU data to internal memory (100 Hz)
+        Subj_A->>Watch: Perform gesture repeatedly at own tempo
+        Watch->>Watch: Log raw IMU data to internal flash memory (100 Hz)
     end
-    User->>App: Stop session
+    Subj_B->>App: Stop recording session via App
     Watch->>App: Sync & transfer logged data from watch to app
     App->>App: Export two distinct CSV files: Acc & Gyr
     Note over Script: Merge ACC & GYR CSVs row-by-row on epoc (ms)
