@@ -10,28 +10,27 @@ Below is a visual overview of how raw accelerometer and gyroscope signals from M
 
 ```mermaid
 graph TD
-    A[MongoDB Database] -->|Raw Gesture Recording| B[Pandas Dataframe]
-    B -->|Filter Signal| C[Butterworth Lowpass Filter]
-    C -->|Segment Recording| D[Sliding Window Segmentation]
-    D -->|Window Datasets| E{Modeling Branch?}
+    A[MongoDB Database] --> B[Standardized Pandas DataFrame]
+    B -->|Grouped by Session| C[Butterworth Lowpass Filtering]
+    C -->|Grouped by Session| D[Sliding Window Segmentation]
+    D --> E{Train/Test Split Strategy}
     
-    %% Branch 1: Feature Engineering
-    E -->|Handcrafted Features| F[Feature Extraction]
-    F -->|extract_all_candidates| G[134-D Feature Vectors]
-    G -->|Scale Features| H[StandardScaler]
-    H -->|Split Data| I{Validation Split?}
-    I -->|Stratified Window Split| J[ml_stratified_split.ipynb]
-    I -->|Subject-Wise Split| K[ml_subject_split.ipynb]
-    J & K -->|Train & Evaluate| L[SVM & Random Forest]
+    %% Split branches
+    E -->|Subject-Wise Split| F[ml_subject_split.ipynb / cnn_subject_split.ipynb]
+    E -->|Stratified Window Split| G[ml_stratified_split.ipynb / cnn_stratified_split.ipynb]
     
-    %% Branch 2: Deep Learning
-    E -->|Raw Signal Tensors| M[3D Sensor Tensors]
-    M -->|Scale Signals| N[StandardScaler]
-    N -->|Split Data| O{Validation Split?}
-    O -->|Stratified Window Split| P[cnn_stratified_split.ipynb]
-    O -->|Subject-Wise Split| Q[cnn_subject_split.ipynb]
-    P & Q -->|Train & Evaluate| R[1D Convolutional Neural Network]
+    %% Modeling paths
+    F & G -->|Feature Engineering Path| H[Extract Handcrafted Features]
+    H -->|Scale & Train| I[SVM & Random Forest]
+    
+    F & G -->|Deep Learning Path| J[Format 3D Sensor Tensors]
+    J -->|Scale & Train| K[1D CNN]
 ```
+
+> [!NOTE]
+> **Key Pipeline Rules:**
+> 1. **Per-Session Preprocessing**: Filtering and window segmentation are performed strictly within isolated sessions (grouped by `["gesture_id", "user"]`) to prevent boundary distortions and dataset mixing.
+> 2. **Train-Only Feature Selection & Scaling**: To avoid data leakage, EDA feature selection (ANOVA, correlation filtering, and boxplot checks) and scaling fitting are done **strictly on the training set**. The test set is only transformed using the resulting configuration/parameters.
 
 ---
 
@@ -84,7 +83,7 @@ For each 150-sample window, `extract_all_candidates()` computes **134 descriptor
 In the notebooks [cnn_subject_split.ipynb](file:///home/spman/ceid/Iot_TimeSeries/cnn_subject_split.ipynb) and [cnn_stratified_split.ipynb](file:///home/spman/ceid/Iot_TimeSeries/cnn_stratified_split.ipynb), the 3D window tensors are fed directly to a lightweight neural network.
 
 ### Input Tensor Shape
-$$(\text{num\_windows}, \text{window\_size}, \text{num\_channels}) = (N, 150, 6)$$
+$$(N_{\text{windows}}, \text{window size}, N_{\text{channels}}) = (N, 150, 6)$$
 
 ### 1D CNN Architecture
 ```text

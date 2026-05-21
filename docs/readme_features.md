@@ -52,5 +52,5 @@ Before training the classical classifiers, the notebooks execute a structured 8-
 *   **Goal**: Examines the variance, median differences, and outliers of the features to evaluate class separability.
 
 ### Step 8: Principal Component Analysis (PCA) 3D Projection
-*   **Method**: Scale the features to unit variance and project them into a lower-dimensional space using PCA ($n\_components = 3$).
+*   **Method**: Scale the features to unit variance and project them into a lower-dimensional space using PCA (with `n_components = 3`).
 *   **Visual**: A 3D/2D scatter plot color-coded by gesture class. This helps inspect whether the classes form distinct clusters in the feature space prior to model training.
