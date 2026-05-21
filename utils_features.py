@@ -2,9 +2,7 @@
 utils_features.py
 ─────────────────
 Provides:
-  extract_features_v2(window)          – magnitude-based pool (46 features, orientation-invariant)
   extract_all_candidates(window)        – full structured pool  (105 features, per-axis)
-  select_uncorrelated(X, y, k, thr)    – F-score ranking + correlation pruning
 """
 
 from scipy.signal import find_peaks
