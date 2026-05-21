@@ -39,6 +39,14 @@ nbstripout --install
 
 ---
 
+## Gesture Collection Procedure
+
+The gesture data was collected using a watch-style **MetaMotionR** wristband logging 6-channel IMU data (3-axis Accelerometer, 3-axis Gyroscope) at **100 Hz** across **3 participants**. Each gesture was recorded continuously for a single **5-minute session**.
+
+For a detailed breakdown of the hardware settings, participant styles, texting and swiping protocols, and orientation gravity biases, refer to the [Gesture Collection Procedure Documentation](docs/gesture_collection_procedure.md).
+
+---
+
 ## Dataset Layout
 
 The dataset creation notebook expects CSV files containing raw signal records grouped by gesture under a `mongo_data/` directory.
@@ -73,6 +81,7 @@ Open [aiot_dataset_creation.ipynb](aiot_dataset_creation.ipynb) and execute the 
 
 ## Modeling Pipeline Overview
 
+* For details on the hardware configuration, recording protocol, and participant gravity biases, see the [Gesture Collection Procedure Documentation](docs/gesture_collection_procedure.md).
 * For a comprehensive guide detailing data ingestion, signal filtering, and the 1D CNN architecture, see the [Gesture Recognition Pipeline Documentation](docs/readme_pipeline.md).
 * For a detailed breakdown of the Exploratory Data Analysis (EDA) steps, per-session preprocessing logic, and feature selection (ANOVA and multicollinearity checks), see the [Feature Engineering & EDA Documentation](docs/readme_features.md).
 
