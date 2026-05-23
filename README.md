@@ -114,8 +114,45 @@ The preprocessing and model hyperparameters can be tuned in [config.yml](config.
 
 ---
 
+## Project Structure & File Layout
+
+Here is the organization of the repository and the specific role of each folder and file:
+
+```text
+├── config.yml                      # Preprocessing & hyperparameter configuration
+├── requirements.txt                # Project dependencies
+├── utils.py                        # Signal filtering & sliding window segmentation
+├── utils_features.py               # Feature extraction logic (134 handcrafted features)
+├── utils_visual.py                 # Renders & automatically paths all visualization charts
+│
+├── aiot_dataset_creation.ipynb     # MongoDB database insertion notebook
+├── ml_subject_split.ipynb          # Classical ML experiments: subject-wise split
+├── ml_stratified_split.ipynb       # Classical ML experiments: stratified window split
+├── cnn_subject_split.ipynb         # 1D CNN experiments: subject-wise split
+├── cnn_stratified_split.ipynb      # 1D CNN experiments: stratified window split
+│
+├── data/                           # Raw Accelerometer & Gyroscope logs from the MetaMotion watch
+├── mongo_data/                     # Renamed, merged CSV files ready for database upload
+├── scripts/                        # Helper scripts (merge_sensor_csvs.py)
+│
+├── docs/                           # Comprehensive project documentation
+│   ├── gesture_collection_procedure.md
+│   ├── readme_pipeline.md
+│   └── readme_features.md
+│
+└── figures/                        # Saved visual plots grouped by analysis phase
+    ├── eda/                        # Window counts, signal comparisons, duration plots
+    ├── features/                   # Correlation matrices, boxplots, pairwise scatters
+    ├── pca/                        # Principal Component Analysis scatter plots
+    ├── subject_insights/           # ANOVA feature comparisons
+    └── evaluation/                 # Model evaluation matrices (subdivided into cnn/ and ml/)
+```
+
+---
+
 ## Code Modules Reference
 
 *   [utils.py](utils.py): Provides signal filtering (Butterworth), sliding-window segmentation, dataset reshaping, and file helpers.
 *   [utils_features.py](utils_features.py): Extracts statistical (mean, skewness, zero-crossing, etc.) and spectral descriptors from segmented windows.
-*   [utils_visual.py](utils_visual.py): Visualizes raw/filtered signals, class distributions, and confusion matrices.
+*   [utils_visual.py](utils_visual.py): Visualizes raw/filtered signals, PCA components, correlations, boxplots, and confusion matrices.
+
