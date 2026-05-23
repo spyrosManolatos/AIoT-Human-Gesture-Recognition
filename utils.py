@@ -239,3 +239,59 @@ def list_files_in_folder(folder_path) -> list:
                 files_list.append(f)
 
     return files_list
+
+def check_missing_values(df: pd.DataFrame) -> pd.Series:
+    """Checks for missing values in each column of the DataFrame and prints a summary.
+    If a 'user' column is present, it also provides a breakdown per user.
+
+    Args:
+        df: The input pandas DataFrame.
+
+    Returns:
+        A pandas Series containing the counts of missing values per column.
+    """
+    missing_counts = df.isnull().sum()
+    total_missing = missing_counts.sum()
+    
+    print("=" * 45)
+    print("OVERALL MISSING VALUES SUMMARY")
+    print("=" * 45)
+    
+    if total_missing == 0:
+        print("No missing values found in the entire dataset.\n")
+    else:
+        for col, count in missing_counts.items():
+            if count > 0:
+                percentage = (count / len(df)) * 100
+                print(f"{col:<15}: {count:>6} missing ({percentage:>6.2f}%)")
+        print(f"\nTotal missing values: {total_missing}\n")
+
+    if "user" in df.columns:
+        print("=" * 45)
+        print("MISSING VALUES BREAKDOWN PER USER")
+        print("=" * 45)
+        
+        missing_by_user = df.isnull().groupby(df['user']).sum()
+        cols_with_missing = missing_counts[missing_counts > 0].index
+        
+        if len(cols_with_missing) == 0:
+            print("All users have complete data (no missing values).")
+        else:
+            missing_by_user = missing_by_user[cols_with_missing]
+            for user_id, row in missing_by_user.iterrows():
+                user_total = row.sum()
+                user_len = (df['user'] == user_id).sum()
+                print(f"\nUser {user_id} (Total instances: {user_len})")
+                print("-" * 35)
+                if user_total == 0:
+                    print("  No missing values.")
+                else:
+                    for col in cols_with_missing:
+                        count = row[col]
+                        if count > 0:
+                            percentage = (count / user_len) * 100
+                            print(f"  {col:<13}: {count:>6} missing ({percentage:>6.2f}%)")
+                    print(f"  User Total   : {user_total} missing values")
+        print("=" * 45 + "\n")
+
+    return missing_counts
