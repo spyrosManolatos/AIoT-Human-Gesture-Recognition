@@ -9,10 +9,7 @@ Tools, notebooks, and helper modules for building an IMU-based human gesture rec
 - **Python**: 3.10+
 - **MongoDB**: Local or remote instance (e.g., Docker or MongoDB Atlas)
 - **Raw Data**: A `data/` folder **EXACTLY** as provided in the `.zip` archive via the OneDrive Link.
-
 ---
-
-
 
 ## Setup & Installation
 
