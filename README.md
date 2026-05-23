@@ -69,13 +69,35 @@ CSV filenames are parsed into metadata values using the schema:
 
 ---
 
-## Database Import
+## Data Ingestion & Database Import
 
-Open [aiot_dataset_creation.ipynb](aiot_dataset_creation.ipynb) and execute the cells. This notebook will:
-1. Read gesture subdirectories in `mongo_data/`.
-2. Parse metadata from the CSV filenames.
-3. Automatically map sensor columns (supporting both standard names and unit-annotated headers).
-4. Perform bulk insertion of raw series documents into MongoDB.
+Follow these steps to process raw sensor data, prepare it, and load it into your MongoDB instance:
+
+### Step 1: Merge Raw Accelerometer and Gyroscope Logs
+Raw logging exports from the wearable device are stored in the `data/` directory, nested by gesture and user. Pair and align them by running:
+```bash
+python scripts/merge_sensor_csvs.py
+```
+This script scans the `data/` folder, pairs accelerometer and gyroscope CSV files, aligns them by epoch timestamp, and outputs a unified merged csv file inside each session's directory.
+
+### Step 2: Encode Metadata and Stage in `mongo_data/`
+1. Rename the resulting `merged.csv` files using the standardized [Filename Schema](#filename-schema) to encode metadata (e.g. hand, sampling rate, user, etc.).
+2. Copy/move these renamed files directly (flatly) under their respective gesture folders in the `mongo_data/` directory:
+   ```text
+   mongo_data/[gesture_id]/[encoded_filename].csv
+   ```
+
+### Step 3: Run Database Import
+Open [aiot_dataset_creation.ipynb](aiot_dataset_creation.ipynb) and run all cells. This notebook will:
+1. Scan the gesture folders inside `mongo_data/`.
+2. Parse session metadata directly from the CSV filenames.
+3. Automatically map standard and unit-annotated sensor headers.
+4. Perform bulk insertion of the unified gesture session documents into your configured MongoDB database.
+
+---
+
+### Step 4: Run Machine Learning Scenario
+Once the data is loaded into MongoDB, you can run any of the experimental machine learning or deep learning modeling notebooks listed below!
 
 ---
 
