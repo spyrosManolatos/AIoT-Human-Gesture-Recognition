@@ -152,4 +152,5 @@ This directory acts as the ingestion staging area. It contains only the final re
 
 ### C. Pipeline Scripts & Notebooks
 * **`scripts/merge_sensor_csvs.py`:** The python script used to automate raw file processing. It walks through all subfolders in the `data/` directory, pairs up accelerometer and gyroscope logs, aligns their timestamps, and outputs the combined CSV.
+* **`scripts/stage_renamed_files.py`:** The helper script used to stage manually renamed files. It walks recursively through the `data/` folder, finds any CSVs already named according to the metadata schema, and copies them to the flat `mongo_data/` directory structure.
 * **`aiot_dataset_creation.ipynb`:** The database import notebook. It scans the `mongo_data/` folders, parses the filenames to extract metadata, maps column headers, and uploads the sessions as unified documents into MongoDB.
