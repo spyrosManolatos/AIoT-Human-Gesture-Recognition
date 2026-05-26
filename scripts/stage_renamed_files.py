@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 from pathlib import Path
+import yaml
 
 def parse_filename(filename: str) -> str | None:
     # The standardized filename schema has 8 parts separated by underscores:
@@ -17,8 +18,17 @@ def parse_filename(filename: str) -> str | None:
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
-    data_root = root / "data"
-    mongo_data_root = root / "mongo_data"
+    config_path = root / "config.yml"
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    
+    data_root = Path(config['data_path'])
+    if not data_root.is_absolute():
+        data_root = root / data_root
+        
+    mongo_data_root = Path(config['mongo_data_path'])
+    if not mongo_data_root.is_absolute():
+        mongo_data_root = root / mongo_data_root
     
     if not data_root.exists():
         raise SystemExit(f"Data folder not found at: {data_root}")

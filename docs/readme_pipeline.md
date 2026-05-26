@@ -18,9 +18,10 @@ graph TD
     %% Split branches
     E -->|Subject-Wise Split| F[ml_subject_split.ipynb / cnn_subject_split.ipynb]
     E -->|Stratified Window Split| G[ml_stratified_split.ipynb / cnn_stratified_split.ipynb]
+    E -->|Chronological Split| L[ml_temporal_leakage.ipynb]
     
     %% Modeling paths
-    F & G -->|Feature Engineering Path| H[Extract Handcrafted Features]
+    F & G & L -->|Feature Engineering Path| H[Extract Handcrafted Features]
     H -->|Scale & Train| I[SVM & Random Forest]
     
     F & G -->|Deep Learning Path| J[Format 3D Sensor Tensors]
@@ -131,3 +132,8 @@ Both branches are tested using two methods to contrast **user-dependent** perfor
 *   **Process**: The split is strictly partition-based on the `user` field.
 *   **Setup**: Trained on data from subjects `01` and `02`, and evaluated on subject `03`.
 *   **Goal**: Simulates a plug-and-play system testing how the model responds to a completely unseen user. This provides a more realistic measure of generalization.
+
+### III. Chronological Split (No Temporal Leakage)
+*   **Process**: Continuous sessions are split chronologically (e.g. first 75% of the timeline for training, last 25% for testing) **before** running the sliding-window segmentation algorithm.
+*   **Setup**: Evaluated on all users (`01`, `02`, `03`) to isolate the effect of temporal leakage without user differences.
+*   **Goal**: Removes the 50% window overlap (temporal leakage) that inflates scores in random stratified splits, yielding the true performance baseline (~62%–67%) on known users.

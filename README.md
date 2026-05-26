@@ -122,14 +122,15 @@ Once the data is loaded into MongoDB, you can run any of the experimental machin
 * For a comprehensive guide detailing data ingestion, signal filtering, and the 1D CNN architecture, see the [Gesture Recognition Pipeline Documentation](docs/readme_pipeline.md).
 * For a detailed breakdown of the Exploratory Data Analysis (EDA) steps, per-session preprocessing logic, and feature selection (ANOVA and multicollinearity checks), see the [Feature Engineering & EDA Documentation](docs/readme_features.md).
 
-The project implements two modeling branches across four distinct experimental setups to study how classifiers generalize to unseen users.
+The project implements two modeling branches across five distinct experimental setups to study how classifiers generalize to unseen users.
 
-### The Four Experimental Scenarios
+### The Five Experimental Scenarios
 
 | Preprocessing & Features | Data Split Type | Notebook | Key Generalization Takeaway |
 | :--- | :--- | :--- | :--- |
 | **Feature Engineering**<br>*(Statistical + Spectral)* | **Subject-Independent**<br>*(Split by user)* | [ml_subject_split.ipynb](ml_subject_split.ipynb) | Handcrafted features do not generalize well to completely unseen users (real-world performance drop). |
 | **Feature Engineering**<br>*(Statistical + Spectral)* | **Stratified Random**<br>*(Windows mixed)* | [ml_stratified_split.ipynb](ml_stratified_split.ipynb) | Accuracy appears overly optimistic when the same users' windows leak into both train and test sets. |
+| **Feature Engineering**<br>*(Statistical + Spectral)* | **Chronological**<br>*(Timeline split)* | [ml_temporal_leakage.ipynb](ml_temporal_leakage.ipynb) | Accuracy drops to ~62%–67% when overlapping windows (temporal leakage) are removed, revealing the true performance limits on known users. |
 | **1D CNN on Raw Series** | **Stratified Random**<br>*(Windows mixed)* | [cnn_stratified_split.ipynb](cnn_stratified_split.ipynb) | A lightweight 1D CNN performs very well when data from the same subject overlaps between sets. |
 | **1D CNN on Raw Series** | **Subject-Wise Split** | [cnn_subject_split.ipynb](cnn_subject_split.ipynb) | Deep learning classification accuracy drops significantly on unseen subjects, reflecting true generalization limit. |
 
@@ -165,6 +166,7 @@ Here is the organization of the repository and the specific role of each folder 
 ├── aiot_dataset_creation.ipynb     # MongoDB database insertion notebook
 ├── ml_subject_split.ipynb          # Classical ML experiments: subject-wise split
 ├── ml_stratified_split.ipynb       # Classical ML experiments: stratified window split
+├── ml_temporal_leakage.ipynb       # Classical ML experiments: chronological window split (no leakage)
 ├── cnn_subject_split.ipynb         # 1D CNN experiments: subject-wise split
 ├── cnn_stratified_split.ipynb      # 1D CNN experiments: stratified window split
 │
