@@ -1,3 +1,6 @@
+import os
+import pymongo
+from datetime import datetime
 from os import listdir
 from os.path import isfile, join
 import scipy
@@ -295,3 +298,117 @@ def check_missing_values(df: pd.DataFrame) -> pd.Series:
         print("=" * 45 + "\n")
 
     return missing_counts
+
+
+def parse_filename(filename):
+    base = os.path.splitext(os.path.basename(filename))[0]
+    parts = base.split("_")
+    if len(parts) < 8:
+        raise ValueError(f"Unexpected filename format: {filename}")
+    return {
+        "gesture_id": "_".join(parts[:-7]),
+        "hand": int(parts[-7]),
+        "sr": int(parts[-6]),
+        "sensor": parts[-5],
+        "primary": int(parts[-4]),
+        "spontaneous": int(parts[-3]),
+        "user": parts[-2],
+        "unique_id_hash": parts[-1],
+    }
+
+
+COLUMN_ALIASES = {
+    "acc_x": ["acc_x", "x-axis (g)"],
+    "acc_y": ["acc_y", "y-axis (g)"],
+    "acc_z": ["acc_z", "z-axis (g)"],
+    "gyr_x": ["gyr_x", "x-axis (deg/s)"],
+    "gyr_y": ["gyr_y", "y-axis (deg/s)"],
+    "gyr_z": ["gyr_z", "z-axis (deg/s)"],
+}
+
+
+def resolve_columns(columns):
+    cols_lower = {c.lower(): c for c in columns}
+    resolved = {}
+    for key, aliases in COLUMN_ALIASES.items():
+        match = None
+        for alias in aliases:
+            alias_lower = alias.lower()
+            if alias_lower in cols_lower:
+                match = cols_lower[alias_lower]
+                break
+        if match is None:
+            return None
+        resolved[key] = match
+    return resolved
+
+
+def import_sensor_csvs_to_mongodb(data_path, collection):
+    """Parses and ingests session CSV files from data_path into the MongoDB collection.
+    
+    Args:
+        data_path: Path to the root directory containing gesture folders.
+        collection: The pymongo Collection object to insert documents into.
+        
+    Returns:
+        tuple: (inserted_count, skipped_files_list)
+    """
+    classes_folders_list = [
+        f for f in os.listdir(data_path) if os.path.isdir(os.path.join(data_path, f))
+    ]
+    
+    documents = []
+    skipped = []
+
+    for gesture in classes_folders_list:
+        gesture_dir = os.path.join(data_path, gesture)
+        for filename in os.listdir(gesture_dir):
+            if not filename.lower().endswith(".csv"):
+                continue
+            file_path = os.path.join(gesture_dir, filename)
+            try:
+                meta = parse_filename(filename)
+            except ValueError as exc:
+                skipped.append((filename, str(exc)))
+                continue
+
+            df = pd.read_csv(file_path)
+            resolved = resolve_columns(df.columns)
+            if resolved is None:
+                skipped.append((filename, "Missing expected columns"))
+                continue
+
+            data = {
+                "acc_x": df[resolved["acc_x"]].tolist(),
+                "acc_y": df[resolved["acc_y"]].tolist(),
+                "acc_z": df[resolved["acc_z"]].tolist(),
+                "gyr_x": df[resolved["gyr_x"]].tolist(),
+                "gyr_y": df[resolved["gyr_y"]].tolist(),
+                "gyr_z": df[resolved["gyr_z"]].tolist(),
+            }
+
+            doc = {
+                "_id": meta["unique_id_hash"],
+                "data": data,
+                "gesture_id": meta["gesture_id"],
+                "hand": meta["hand"],
+                "sr": meta["sr"],
+                "sensor": meta["sensor"],
+                "primary": meta["primary"],
+                "spontaneous": meta["spontaneous"],
+                "user": meta["user"],
+                "datetime": datetime.now(),
+            }
+            documents.append(doc)
+
+    inserted_count = 0
+    if documents:
+        try:
+            result = collection.insert_many(documents)
+            if result is not None:
+                inserted_count = len(result.inserted_ids)
+        except pymongo.errors.BulkWriteError as exc:
+            write_errors = exc.details.get("writeErrors", [])[0].get("errmsg", "Unknown error")
+            print(f"Error inserting documents: {write_errors}")
+            
+    return inserted_count, skipped
