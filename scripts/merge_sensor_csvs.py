@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
+import yaml
 
 
 def find_pairs(folder: Path) -> list[tuple[Path, Path, str]]:
@@ -75,7 +76,14 @@ def merge_pair(acc_path: Path, gyr_path: Path, out_path: Path) -> int:
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
-    data_root = root / "data"
+    config_path = root / "config.yml"
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    data_root = Path(config['data_path'])
+    if not data_root.is_absolute():
+        data_root = root / data_root
+
     if not data_root.exists():
         raise SystemExit(f"Data folder not found: {data_root}")
 
